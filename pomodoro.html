@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodo Timer |</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
+        
+        :root { --accent: #6366f1; --bg: #0f172a; --text: #ffffff; --glass: rgba(0,0,0,0.4); }
+        
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--bg); color: var(--text);
+            height: 100vh; width: 100vw; overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* THEMES */
+        .theme-midnight { --bg: #020617; --accent: #6366f1; --text: #f8fafc; --glass: rgba(255,255,255,0.05); }
+        .theme-matrix { --bg: #000; --accent: #00ff41; --text: #00ff41; --glass: rgba(0,255,65,0.1); }
+        .theme-tokyo { --bg: #1a1b26; --accent: #bb9af7; --text: #a9b1d6; --glass: rgba(187,154,247,0.1); }
+        .theme-sakura { --bg: #fff1f2; --accent: #f43f5e; --text: #881337; --glass: rgba(0,0,0,0.05); }
+        .theme-arctic { --bg: #f0f9ff; --accent: #0ea5e9; --text: #0c4a6e; --glass: rgba(0,0,0,0.05); }
+        .theme-minimal { --bg: #ffffff; --accent: #000; --text: #000; --glass: rgba(0,0,0,0.05); }
+
+        .glass { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+        #side-menu { transition: 0.4s; transform: translateX(-100%); }
+        #side-menu.open { transform: translateX(0); }
+        #music-tray { transition: 0.4s; transform: translateY(calc(100% - 50px)); }
+        #music-tray.open { transform: translateY(0); }
+        .progress-ring__circle { transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; stroke: var(--accent); }
+    </style>
+</head>
+<body class="theme-midnight">
+
+    <div id="side-menu" class="fixed top-0 left-0 h-full w-80 glass z-[100] p-8 flex flex-col overflow-y-auto">
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-xl font-bold tracking-tighter">Aura.<span class="opacity-50">OS</span></h2>
+            <button onclick="toggleMenu()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="space-y-8">
+            <section>
+                <p class="text-[10px] uppercase tracking-widest opacity-50 mb-4">Quick Templates</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setTemplate(25, 5)" class="p-2 border border-current/10 rounded-lg text-[10px] hover:bg-white/10">POMODORO (25:5)</button>
+                    <button onclick="setTemplate(50, 10)" class="p-2 border border-current/10 rounded-lg text-[10px] hover:bg-white/10">DEEP WORK (50:10)</button>
+                </div>
+            </section>
+
+            <section>
+                <p class="text-[10px] uppercase tracking-widest opacity-50 mb-4">Custom Interval (Min)</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="workIn" value="25" class="bg-black/10 border border-current/10 p-2 rounded-lg text-xs outline-none" title="Work">
+                    <input type="number" id="breakIn" value="5" class="bg-black/10 border border-current/10 p-2 rounded-lg text-xs outline-none" title="Break">
+                </div>
+                <button onclick="resetTimer()" class="w-full mt-2 p-2 bg-current/10 rounded-lg text-[10px] font-bold uppercase">Apply Custom</button>
+            </section>
+
+            <section>
+                <p class="text-[10px] uppercase tracking-widest opacity-50 mb-4">Atmospheres</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setTheme('midnight')" class="p-2 border border-current/10 rounded-lg text-[10px]">MIDNIGHT</button>
+                    <button onclick="setTheme('matrix')" class="p-2 border border-current/10 rounded-lg text-[10px]">MATRIX</button>
+                    <button onclick="setTheme('tokyo')" class="p-2 border border-current/10 rounded-lg text-[10px]">TOKYO</button>
+                    <button onclick="setTheme('arctic')" class="p-2 border border-current/10 rounded-lg text-[10px]">ARCTIC</button>
+                    <button onclick="setTheme('sakura')" class="p-2 border border-current/10 rounded-lg text-[10px]">SAKURA</button>
+                    <button onclick="setTheme('minimal')" class="p-2 border border-current/10 rounded-lg text-[10px]">MINIMAL</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="flex flex-col items-center">
+        <button onclick="toggleMenu()" class="fixed top-8 left-8 p-4 glass rounded-full z-50"><i class="fa-solid fa-bars-staggered"></i></button>
+
+        <div class="relative flex items-center justify-center">
+            <svg class="w-80 h-80 md:w-[420px] md:h-[420px]">
+                <circle class="opacity-10" stroke="currentColor" stroke-width="2" fill="transparent" r="200" cx="210" cy="210"/>
+                <circle id="progress" class="progress-ring__circle" stroke-width="3" stroke-dasharray="1256" stroke-dashoffset="0" stroke-linecap="round" fill="transparent" r="200" cx="210" cy="210"/>
+            </svg>
+            <div class="absolute text-center">
+                <span id="status-label" class="text-[10px] uppercase tracking-[0.4em] opacity-40 block mb-2">Focus</span>
+                <h1 id="display" class="text-8xl font-light tracking-tighter">25:00</h1>
+            </div>
+        </div>
+        
+        <div class="flex gap-4 mt-12">
+            <button onclick="toggleTimer()" id="mainBtn" class="px-14 py-4 glass rounded-full font-bold uppercase text-[10px] tracking-widest">Start</button>
+            <button onclick="resetTimer()" class="p-4 glass rounded-full"><i class="fa-solid fa-rotate-right"></i></button>
+        </div>
+    </div>
+
+    <div id="music-tray" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-[90%] max-w-xl glass rounded-t-[2.5rem] p-6 z-[80]">
+        <button onclick="toggleTray()" class="w-full flex flex-col items-center mb-4 opacity-40 hover:opacity-100 transition">
+            <div class="w-10 h-1 bg-current rounded-full mb-1"></div>
+            <span class="text-[9px] font-bold uppercase tracking-widest">Audio Deck</span>
+        </button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="rounded-2xl overflow-hidden aspect-video bg-black"><iframe id="lofi-frame" width="100%" height="100%" src="https://www.youtube.com/embed/jfKfPfyJRdk" frameborder="0"></iframe></div>
+            <div class="space-y-3">
+                <div class="glass p-3 rounded-xl flex justify-between items-center text-[10px]"><span>Rain</span><input type="range" oninput="mix('rain', this.value)" class="w-20 accent-current"></div>
+                <div class="glass p-3 rounded-xl flex justify-between items-center text-[10px]"><span>Fire</span><input type="range" oninput="mix('fire', this.value)" class="w-20 accent-current"></div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="snd-rain" loop src="https://www.soundjay.com/nature/rain-07.mp3"></audio>
+    <audio id="snd-fire" loop src="https://www.soundjay.com/nature/fire-1.mp3"></audio>
+
+    <script>
+        let timeLeft = 1500, timerId = null, isFocus = true;
+        
+        function updateDisplay() {
+            const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+            document.getElementById('display').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+            const total = (isFocus ? document.getElementById('workIn').value : document.getElementById('breakIn').value) * 60;
+            document.getElementById('progress').style.strokeDashoffset = 1256 - (timeLeft / total) * 1256;
+        }
+
+        function toggleTimer() {
+            if (timerId) { clearInterval(timerId); timerId = null; document.getElementById('mainBtn').innerText = 'Resume'; }
+            else {
+                document.getElementById('mainBtn').innerText = 'Pause';
+                timerId = setInterval(() => {
+                    if (timeLeft > 0) { timeLeft--; updateDisplay(); }
+                    else {
+                        isFocus = !isFocus;
+                        timeLeft = (isFocus ? document.getElementById('workIn').value : document.getElementById('breakIn').value) * 60;
+                        document.getElementById('status-label').innerText = isFocus ? 'Focus' : 'Break';
+                        new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play();
+                        updateDisplay();
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerId); timerId = null; isFocus = true;
+            timeLeft = document.getElementById('workIn').value * 60;
+            document.getElementById('status-label').innerText = 'Focus';
+            document.getElementById('mainBtn').innerText = 'Start';
+            updateDisplay();
+        }
+
+        function setTemplate(w, b) {
+            document.getElementById('workIn').value = w;
+            document.getElementById('breakIn').value = b;
+            resetTimer();
+            toggleMenu();
+        }
+
+        function setTheme(t) { document.body.className = 'theme-' + t; }
+        function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); }
+        function toggleTray() { document.getElementById('music-tray').classList.toggle('open'); }
+        function mix(type, vol) {
+            const p = document.getElementById('snd-' + type);
+            p.volume = vol / 100;
+            vol > 0 ? p.play() : p.pause();
+        }
+        updateDisplay();
+    </script>
+</body>
+</html>
